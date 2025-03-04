@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+
+    environment {
+        REMOTE_USER = "remote-user"    // Change to your remote machine username
+        REMOTE_HOST = "remote-server-ip" // Change to your remote machine IP
+        REMOTE_PATH = "/home/remote-user/app" // Directory to deploy the app
+    }
+
+    stages {
+        stage('Deploy on Remote Machine') {
+            steps {
+                sshagent(['remote-server-credentials']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST <<EOF
+                        echo "Connecting to remote server..."
+                        
+                        mkdir -p $REMOTE_PATH
+                        cd $REMOTE_PATH
+
+                        if [ -d "$REMOTE_PATH/Demo-Project" ]; then
+                            cd Demo-Project
+                            git pull
+                        else
+                            git clone https://github.com/khushi284/Demo-Project.git
+                            cd Demo-Project
+                        fi
+
+                        docker-compose down
+
+                        docker-compose up --build -d
+
+                        echo "Application deployed successfully!"
+                    EOF
+                    """
+                }
+            }
+        }
+    }
+}
